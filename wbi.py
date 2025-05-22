@@ -3,7 +3,7 @@ from functools import reduce
 from hashlib import md5
 import urllib.parse
 import time
-import requests
+import aiohttp
 import json
 
 mixinKeyEncTab = [
@@ -34,23 +34,24 @@ def encWbi(params: dict, img_key: str, sub_key: str):
     params['w_rid'] = wbi_sign
     return params
 
-def getWbiKeys() -> tuple[str, str]:
+async def getWbiKeys() -> tuple[str, str]:
     '获取最新的 img_key 和 sub_key'
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
         'Referer': 'https://www.bilibili.com/'
     }
-    resp = requests.get('https://api.bilibili.com/x/web-interface/nav', headers=headers)
-    resp.raise_for_status()
-    json_content = resp.json()
-    img_url: str = json_content['data']['wbi_img']['img_url']
-    sub_url: str = json_content['data']['wbi_img']['sub_url']
-    img_key = img_url.rsplit('/', 1)[1].split('.')[0]
-    sub_key = sub_url.rsplit('/', 1)[1].split('.')[0]
-    return img_key, sub_key
+    async with aiohttp.ClientSession() as session:
+        async with session.get('https://api.bilibili.com/x/web-interface/nav', headers=headers) as resp:
+            resp.raise_for_status()
+            json_content = await resp.json()
+            img_url: str = json_content['data']['wbi_img']['img_url']
+            sub_url: str = json_content['data']['wbi_img']['sub_url']
+            img_key = img_url.rsplit('/', 1)[1].split('.')[0]
+            sub_key = sub_url.rsplit('/', 1)[1].split('.')[0]
+            return img_key, sub_key
 
-def getURL(parrams):
-    img_key, sub_key = getWbiKeys()
+async def getURL(parrams):
+    img_key, sub_key = await getWbiKeys()
     signed_params = encWbi(parrams, img_key, sub_key)
     query = urllib.parse.urlencode(signed_params)
     return query

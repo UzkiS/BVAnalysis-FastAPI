@@ -33,37 +33,39 @@ app.add_middleware(GZipMiddleware)
 async def filter_invalid_requests_middleware(request: Request, call_next):
     path = request.url.path
     is_valid = (
-        path == "/" 
-        or path.startswith("/submit") 
-        or path.startswith("/live/") 
-        or path.startswith("/ip") 
+        # path == "/" 
+        # or path.startswith("/submit") 
+        # or path.startswith("/live/") 
+        # or path.startswith("/ip") 
+        path.startswith("/live/") 
         or re.search(r'BV[a-zA-Z0-9]{10}', path)
     )
+    # logger.info(f"path: {path}, valid: {re.search(r'BV[a-zA-Z0-9]{10}', path)},is_valid: {is_valid}")  # 添加日志输出
     if not is_valid:
         return JSONResponse(status_code=403, content={"error": "Invalid request"})
     return await call_next(request)
 
-@app.get("/", response_class=HTMLResponse)
-@limiter.limit("10/minute")
-async def index(request: Request):
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>BV Analysis</title>
-    </head>
-    <body>
-        <h1>BV Analysis</h1>
-        <form action="/submit" method="get">
-            <label for="bvid">BVID:</label>
-            <input type="text" id="bvid" name="bvid" required>
-            <label for="p">Page Number:</label>
-            <input type="number" id="p" name="p">
-            <button type="submit">Submit</button>
-        </form>
-    </body>
-    </html>
-    """
+
+# @app.get("/", response_class=HTMLResponse)
+# @limiter.limit("10/minute")
+# async def index(request: Request):
+#     return """
+#     <!DOCTYPE html>
+#     <html>
+#     <head>
+#         <title>BV Analysis</title>
+#     </head>
+#     <body>
+#         <h1>BV Analysis</h1>
+#         <form action="/submit" method="get">
+#             <label for="bvid">BVID:</label>
+#             <input type="text" id="bvid" name="bvid" required>
+#             <label for="p">Page Number:</label>
+#             <input type="number" id="p" name="p">
+#             <button type="submit">Submit</button>
+#         </form>
+#     </body>
+#     </html>
 
 # 添加新的路由处理直播推流链接请求
 @app.get("/live/{room_id}")
@@ -87,10 +89,10 @@ async def submit(request: Request):
         p = 1
     return RedirectResponse(url=f"/{bvid}?p={p}")
 
-@app.get("/ip")
-@limiter.limit("10/minute")
-async def get_client_ip(request: Request):
-    return {"client_ip": request.client.host}
+
+# @app.get("/ip")
+# @limiter.limit("10/minute")
+# async def get_client_ip(request: Request):
 
 @app.get("/{param}")
 @limiter.limit("10/minute")
